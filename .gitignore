@@ -1,0 +1,14 @@
+# 备份（回滚兜底，不入库）
+_archive/
+
+# 脚本日志与待裁决报告（运行时产物）
+_scripts/compare.log
+_scripts/待裁决.md
+
+# Python
+__pycache__/
+*.pyc
+
+# 系统
+.DS_Store
+Thumbs.db
