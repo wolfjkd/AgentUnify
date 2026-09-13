@@ -16,6 +16,17 @@
 > - **架构背景**：`ai_rules_architecture.md`
 > - **核心铁律**：Owner 唯一；先对比再增删改（不覆盖）；脚本只机械 compare 不裁决；记忆定期提炼汇总。
 
+### 0.1 工具接入一览（v0.2.0）
+
+| 工具 | 副本位 | 下发模式 | 备注 |
+|---|---|---|---|
+| WorkBuddy | `~/.workbuddy/` | **1:1 翻译下发**（占位符→WB 路径）| 全权 Owner 管 |
+| Trae Work | `~/.trae-cn/` | **1:1 翻译下发**（占位符→Trae 路径）| 全权 Owner 管 |
+| ZCode | `~/.zcode/workspace/default/inbox/` | **inbox 直拷**（原样保留子目录）| ZCode 自己归位，体系不碰 inbox 外 |
+| 豆包 / 其他 | 无本地目录 | 手动 | Owner 手动同步 |
+
+> ⛔ **ZCode 边界**：`~/.zcode/` 下除 inbox 外的文件是 ZCode 自己的家务事，本体系永不触碰。
+
 ## 1. 安全与操作边界
 
 ### 1.1 红线命令（必须暂停确认）
@@ -44,7 +55,7 @@
 
 | 子文档 | 核心内容 | 触发关键词 |
 |------|----------|-----------|
-| `2-规则/AI-Rules镜像同步规范.md` | 镜像对比脚本用法（compare/check/backup/sync） | 镜像对比、镜像同步、compare、sync |
+| `2-规则/AI-Rules镜像同步规范.md` | 镜像对比脚本用法（compare / check / backup / sync）+ inbox 模式 + ZCode 边界铁律 | 镜像对比、镜像同步、compare、sync、inbox、下发、ZCode |
 
 ---
 
