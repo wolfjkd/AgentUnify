@@ -3,13 +3,19 @@
 """
 AgentUnify 机械比对器（比对 + 校验 + 机械下发，不做裁决）
 
+⚠️ 本文件是 **AgentUnify 的脱敏参考骨架**，不是本机运行版。
+   本机实际运行的是私有版 `<项目>/_local/_scripts/mirror.py`（_local/ 已 gitignore，不进版本库）。
+   两者**同名不同物**：骨架供对外发布，能力可能落后私有版（行尾归一化 / 4-索引双链守卫 /
+   `--take-ob` 等均为私有版后续新增）。误跑本文件不会破坏数据（OB 是占位符，会自检退出），
+   但它也不是你的运行版 —— 别用它。
+
 定位（协作规则第六条）：
   - 脚本是「工具」，不是「大脑」
   - 比对（哈希）+ 校验（索引对齐）+ 机械下发（翻译覆盖），但不裁决
   - 冲突（内容不同/仅副本有）由 Owner 裁决，脚本只报告不自动覆盖
   - 增删改（归源/内容编辑）由 AI 按「协作规则」执行
 
-真源：Obsidian 你的真源目录\
+真源：Obsidian <你的真源目录>（本文件为脱敏骨架，非本机运行版）
 副本：WorkBuddy ~/.workbuddy、Trae .trae-cn、ZCode ~/.zcode/workspace/default/inbox
 
 三种下发形态（v0.2.0）：
@@ -50,7 +56,7 @@ except AttributeError:
     pass
 
 # ============ 配置区 ============
-OB = r"你的真源目录"          # 真源（Obsidian），唯一真源
+OB = r"你的真源目录"          # ⚠️ 占位符：脱敏骨架使用前须改成你自己的真源目录
 
 # ============ 多工具映射（骨架） ============
 # 真源唯一：Obsidian；每个工具一张映射表，把中立内容「翻译」到该工具的形态。
@@ -520,6 +526,17 @@ def render_report(only_ob, only_wb, differ):
 # ============ 入口 ============
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "compare"
+
+    # #harden-guard 2026-09-14：本文件是脱敏骨架，OB 默认值是占位符，
+    # 照跑会崩在 backup() 的 os.listdir(OB)，且崩法像普通配置问题、难以判断。
+    # 启动即自检并指路，避免把"拿错脚本"误诊为"配置写错"。
+    if not os.path.isdir(OB):
+        sys.stderr.write(
+            "⛔ 真源目录未配置（脱敏骨架的默认值是占位符 「你的真源目录」）。\n"
+            "   · 若你在 AgentUnify 本机运行 → 请改用 _local/_scripts/mirror.py（私有运行版）。\n"
+            "   · 若你是外部使用者        → 请把源码顶部的 OB 改成你自己的真源目录。\n"
+        )
+        sys.exit(2)
 
     # 每次操作前先尝试备份（同一天只备份一次，安全回滚兜底）
     backup()
