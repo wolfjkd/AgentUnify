@@ -226,9 +226,9 @@ AgentUnify/
 | 版本 | 日期 | 变更 |
 |:--|:--|:--|
 | [v0.3.1](https://github.com/wolfjkd/AgentUnify/releases/tag/v0.3.1) | 2026-09-14 | 真源口径分层（文件夹即判据）；方法论文档纳入自动发布；清除 N:1 拼接死代码；修正 `report` 文档 |
-| [v0.3.0](https://github.com/wolfjkd/AgentUnify/releases/tag/v0.3.0) | 2026-09-14 | 稳定性加固（命令白名单 / 前置校验 / 写后复核）；新增 `memindex.py`；配置外置 `config.json` |
-| [v0.2.0](https://github.com/wolfjkd/AgentUnify/releases/tag/v0.2.0) | 2026-09-13 | 4 工具标准化接入；ZCode 改 inbox 模式；副本双向遍历加固 |
-| [v0.1.0](https://github.com/wolfjkd/AgentUnify/releases/tag/v0.1.0) | 2026-09-13 | 首个开源版本：真源-副本比对器 + 索引校验 |
+| v0.3.0 | 2026-09-14 | 稳定性加固（命令白名单 / 前置校验 / 写后复核）；新增 `memindex.py`；配置外置 `config.json` |
+| v0.2.0 | 2026-09-13 | 4 工具标准化接入；ZCode 改 inbox 模式；副本双向遍历加固 |
+| v0.1.0 | 2026-09-13 | 首个开源版本：真源-副本比对器 + 索引校验 |
 
 > 完整变更记录见 [`CHANGELOG.md`](CHANGELOG.md)。
 
