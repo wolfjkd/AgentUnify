@@ -34,7 +34,7 @@ import re
 import sys
 from datetime import datetime
 
-__version__ = "0.3.0"   # 与 AgentUnify 项目版本同步（SemVer）
+__version__ = "0.3.1"   # 与 AgentUnify 项目版本同步（SemVer）
 
 # 强制 stdout/stderr 用 UTF-8，避免 Windows cmd（GBK）双击运行时中文乱码
 try:

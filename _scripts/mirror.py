@@ -12,7 +12,7 @@ AgentUnify 机械比对器（比对 + 校验 + 机械下发，不做裁决）
 真源：Obsidian（路径由 config.json 的 source_dir 指定，不写死在代码里）
 副本：WorkBuddy ~/.workbuddy、Trae .trae-cn、ZCode ~/.zcode/workspace/default/inbox
 
-两种现行下发形态（N:1 拼接已于 2026-09-13 废弃）：
+两种现行下发形态（N:1 拼接已于 2026-09-13 废弃，相关死代码 2026-09-14 清除）：
   - 1:1（workbuddy/trae）  真源文件 -> 副本文件（改目录/改名），占位符翻译
   - inbox（zcode，2026-09-13 起）真源文件原样保留子目录拷入 inbox，ZCode 自己归位
     （README：~/.zcode/workspace/default/inbox/README.md，
@@ -20,7 +20,7 @@ AgentUnify 机械比对器（比对 + 校验 + 机械下发，不做裁决）
 
 用法：
   python mirror.py compare        # 对比真源 vs 各工具副本，输出差异清单（默认）
-  python mirror.py report         # 生成待裁决.md（仅当有冲突）
+  python mirror.py report         # 生成待裁决.md 差异报告（无论有无差异都写盘，便于留痕）
   python mirror.py check          # 校验索引对齐（AGENTS.md 懒加载总表 + 4-索引 双链地图）
   python mirror.py backup         # 全量备份真源内容到 _archive/备份-日期/
   （compare / check 为只读命令，不写盘、不触发备份）
@@ -46,7 +46,8 @@ import shutil
 import sys
 from datetime import datetime, timedelta
 
-__version__ = "0.3.0"   # 与 AgentUnify 项目版本同步（SemVer）
+__version__ = "0.3.1"   # 与 AgentUnify 项目版本同步（SemVer）
+                        #   0.3.1 = 清除 N:1 拼接死代码（P3-1）+ 修正 report docstring（P2-6）
                         #   0.3.0 = 稳定性加固（命令白名单 / preflight / config 出声 / 写后复核）
                         #           + 行尾归一 + 4-索引双链守卫 + 独立 memindex.py
 
@@ -130,6 +131,9 @@ TOOLS = {
             "3-记忆/MEMORY.md":   "MEMORY.md",   # 记忆层（2026-09-13 入实时比对）
             "ai_rules_collaboration.md": "user_rules/ai_rules_collaboration.md",
             "ai_rules_architecture.md":  "user_rules/ai_rules_architecture.md",
+            # 2026-09-14 口径分层：镜像同步规范已从真源 2-规则/ 移到真源根级（与方法论同级），
+            # 脱离 rules_dir 通配 → 必须显式映射，否则静默不再同步。副本落点保持不变。
+            "AI-Rules镜像同步规范.md":   "user_rules/AI-Rules镜像同步规范.md",
         },
         "rules_dir": "user_rules",   # 真源 2-规则/*.md -> <root>/<rules_dir>/*.md
         "exclude_rules": ["project_dir_rule.md"],  # 仅 Trae 用，WorkBuddy 本地副本已删
@@ -142,6 +146,8 @@ TOOLS = {
             # 2026-09-13 删除：3-记忆/MEMORY.md -> user_rules/MEMORY.md（Owner"全部删除悬挂"）
             "ai_rules_collaboration.md": "memory/ai_rules_collaboration.md",   # 体系宪法
             "ai_rules_architecture.md": "memory/ai_rules_architecture.md",     # 架构背景
+            # 2026-09-14 口径分层：规范移至真源根级，显式映射（副本落点不变）
+            "AI-Rules镜像同步规范.md": "memory/AI-Rules镜像同步规范.md",
             "2-规则/project_dir_rule.md": "user_rules/project_dir_rule.md",  # 例外：该规则在 Trae 是 user_rules\（自动加载）
             # 注：SOUL.md + IDENTITY.md -> user_rules/identity.md 是 N:1 合并，
             #     脚本不做机械比对，由 AI 下发 Trae 时手动合并（脚本只做 1:1）
@@ -162,6 +168,10 @@ TOOLS = {
             "AGENTS.md":                    "AGENTS.md",
             "ai_rules_architecture.md":     "ai_rules_architecture.md",
             "ai_rules_collaboration.md":    "ai_rules_collaboration.md",
+            # 2026-09-14 口径分层：规范移至真源根级，显式映射。
+            # inbox 内保持原 2-规则/ 落点 —— inbox 是 raw 投递区，换落点会在
+            # ZCode 收件箱留下旧位置残留副本，而边界铁律禁止体系动 inbox 内既有文件。
+            "AI-Rules镜像同步规范.md":      "2-规则/AI-Rules镜像同步规范.md",
             "1-人设/SOUL.md":              "1-人设/SOUL.md",
             "1-人设/IDENTITY.md":          "1-人设/IDENTITY.md",
             "1-人设/USER.md":              "1-人设/USER.md",
@@ -169,7 +179,6 @@ TOOLS = {
         },
         "rules_dir": "2-规则",   # 真源 2-规则/*.md → inbox/2-规则/*.md（整目录保留）
         "exclude_rules": [],
-        "merge": None,   # 不再做 N:1 拼接
     },
     "doubao": {
         "root": None,
@@ -219,9 +228,6 @@ PATH_VARS = {
         # zcode：inbox 模式不翻译（2026-09-13）
     },
 }
-
-# 拼接文件时各段之间的分隔符（N:1 拼接用，字节级，保持 LF）
-MERGE_SEP = b"\n\n---\n\n"
 
 # 规则目录（真源侧）：2-规则/*.md 是所有工具共用的规则来源
 RULES_OB = os.path.join(OB, "2-规则")
@@ -283,47 +289,21 @@ def log(msg):
     with open(LOG_FILE, "a", encoding="utf-8", newline="\n") as f:
         f.write(line + "\n")
 
-def bytes_sha256(data):
-    h = hashlib.sha256()
-    h.update(data)
-    return h.hexdigest()
-
-def merged_bytes(sources, tool):
-    """把多个真源文件按序机械拼成一个文件的字节内容（纯拼接，无内容取舍），并翻译占位符。
-
-    用二进制读写 + 固定分隔符，保持 LF 不被 Windows 转成 CRLF。
-    注：2026-09-13 起 zcode 改 inbox 模式，所有工具的 merge 字段均为 None，
-       因此本函数的两个调用点（pair_ob_sha256 / sync）目前都不可达。
-       保留供未来重新启用 N:1 拼接时使用；若确认永不启用，可连同
-       MERGE_SEP 与各处 merge 分支一并删除。
-    """
-    parts = []
-    for p in sources:
-        with open(p, "rb") as f:
-            parts.append(f.read().rstrip(b"\n"))
-    return translate_content(MERGE_SEP.join(parts) + b"\n", tool)
-
-def pair_ob_sha256(ob_path, tool, merges=None):
-    """算「真源侧应有内容」归一化哈希：拼接型算拼接结果，1:1 型算单文件内容。
+def pair_ob_sha256(ob_path, tool):
+    """算「真源侧应有内容」归一化哈希（占位符 -> 工具路径，行尾归一见 content_sha256）。
 
     2026-09-13 加固 #harden-bidir-scan：孤儿 pair（ob_path=None）直接返回 None，
     compare() 会把 None 哈希视为「真源没有」自动归入 only_wb 分支。
     """
     if ob_path is None:
         return None
-    if merges:
-        try:
-            return bytes_sha256(normalize_eol(merged_bytes(merges, tool)))
-        except OSError:
-            return None
     return content_sha256(ob_path, tool)
 
 def build_pairs(tools=None):
-    """返回 [(真源路径, 副本路径, 工具名, 拼接源列表或None)]。
+    """返回 [(真源路径, 副本路径, 工具名)]。
 
-    1:1 型：真源路径 = 单个真源文件，拼接源 = None。
-    拼接型（N:1）：真源路径 = None（无单一真源），拼接源 = 按序真源文件绝对路径列表。
-    inbox 型（zcode）：真源多个文件 → inbox/<原路径>，拼接源 = None（直拷，不翻译）。
+    1:1 型：真源路径 = 单个真源文件。
+    inbox 型（zcode）：真源多个文件 → inbox/<原路径>（直拷，不翻译）。
 
     2026-09-13 修复 #bug-rules_dir-condition：
       原条件 `and rd == "2-规则"` 误判，导致 rules_dir 不等于 "2-规则" 的工具
@@ -345,7 +325,7 @@ def build_pairs(tools=None):
         base_dst = os.path.join(root, inbox_rel) if inbox_rel else root
 
         for ob_rel, dst_rel in cfg["files"].items():
-            pairs.append((os.path.join(OB, ob_rel), os.path.join(base_dst, dst_rel), tool, None))
+            pairs.append((os.path.join(OB, ob_rel), os.path.join(base_dst, dst_rel), tool))
         rd = cfg.get("rules_dir")
         excl = set(cfg.get("exclude_rules", []))
         # 2026-09-13 修复 #bug-rules_dir-condition：去掉 `and rd == "2-规则"`
@@ -354,7 +334,7 @@ def build_pairs(tools=None):
             for fn in sorted(os.listdir(RULES_OB)):
                 if fn.endswith(".md") and fn not in excl:
                     pairs.append((os.path.join(RULES_OB, fn),
-                                  os.path.join(base_dst, rd, fn), tool, None))
+                                  os.path.join(base_dst, rd, fn), tool))
         # 2026-09-13 加固 #harden-bidir-scan：副本侧孤儿扫描
         # 副本 rules_dir 下有但真源任何位置都没有的文件 → 生成 (None, dst, tool, None) pair，
         # 由 compare() 自然归入「仅副本有」分支。
@@ -386,11 +366,7 @@ def build_pairs(tools=None):
                     if fn in ob_basenames or fn in mapped_basenames:
                         continue   # 真源有，或 files 字段已改名映射，不算孤儿
                     # 真源任何位置都没有且 files 里没改名 → 副本孤儿
-                    pairs.append((None, os.path.join(dst_rules_dir, fn), tool, None))
-        mg = cfg.get("merge")
-        if mg:   # N:1 拼接型：多真源 -> 单副本文件
-            srcs = [os.path.join(OB, s) for s in mg["sources"]]
-            pairs.append((None, os.path.join(root, mg["target"]), tool, srcs))
+                    pairs.append((None, os.path.join(dst_rules_dir, fn), tool))
     return pairs
 
 # ============ 备份（回滚机制） ============
@@ -432,15 +408,18 @@ def check_index():
       - 孤儿规则：真源有、但 AGENTS.md 总表没引用（AI 不会主动读，最危险）
       - 僵尸引用：AGENTS.md 总表引用了、但真源没有该文件
 
-    实际规则文件范围：2-规则/ 下的所有 .md + 根目录的 ai_rules_*.md
+    实际规则文件范围：2-规则/ 下的所有 .md + 真源根级所有 .md（AGENTS.md 除外）
     """
-    # 1. 实际规则文件：2-规则/ 下的 .md + 根目录 ai_rules_*.md
+    # 1. 实际规则文件：2-规则/ 下的 .md + 真源根级 .md（方法论层，AGENTS.md 除外）
+    #    2026-09-14 口径分层：方法论三篇（ai_rules_architecture / ai_rules_collaboration /
+    #    AI-Rules镜像同步规范）都在真源根级。原实现只认 ai_rules_* 前缀，会把
+    #    AI-Rules镜像同步规范.md 漏出 actual，AGENTS.md 一引用它即误报「僵尸引用」。
     actual = set()
     rules_dir = os.path.join(OB, "2-规则")
     if os.path.isdir(rules_dir):
         actual.update(fn for fn in os.listdir(rules_dir) if fn.endswith(".md"))
     for fn in os.listdir(OB):
-        if fn.startswith("ai_rules_") and fn.endswith(".md"):
+        if fn.endswith(".md") and fn != "AGENTS.md":
             actual.add(fn)
 
     # 2. AGENTS.md 总表里引用的规则文件（匹配 {RULES_DIR}xxx.md 等占位符形式，含中文文件名）
@@ -500,7 +479,7 @@ def check_links():
 
 # ============ 核心对比 ============
 def classify(pairs):
-    """把配对逐一比较，归成三类差异。统一形状：每项 (真源路径, 副本路径, 工具, 拼接源|None)。
+    """把配对逐一比较，归成三类差异。统一形状：每项 (真源路径, 副本路径, 工具)。
 
     #refactor-classify 2026-09-14：原 compare() 返回 2 元组、sync() 用 4 元组，
     同一套三分类逻辑逐字重复两遍 —— 改一处漏一处，两种元组形状还构成隐式契约。
@@ -509,25 +488,25 @@ def classify(pairs):
     返回 (仅真源有, 仅副本有, 内容不同)。
     """
     only_ob, only_wb, differ = [], [], []
-    for ob_path, wb_path, tool, merges in pairs:
-        ob_h = pair_ob_sha256(ob_path, tool, merges)   # 真源侧：占位符→工具路径归一化
+    for ob_path, wb_path, tool in pairs:
+        ob_h = pair_ob_sha256(ob_path, tool)   # 真源侧：占位符→工具路径归一化
         wb_h = content_sha256(wb_path)                  # 副本侧：无占位符，只做行尾归一化
         if ob_h is None and wb_h is None:
             continue
         if ob_h is None:
-            only_wb.append((ob_path, wb_path, tool, merges))   # 真源没有，副本有
+            only_wb.append((ob_path, wb_path, tool))   # 真源没有，副本有
         elif wb_h is None:
-            only_ob.append((ob_path, wb_path, tool, merges))   # 真源有，副本没有
+            only_ob.append((ob_path, wb_path, tool))   # 真源有，副本没有
         elif ob_h != wb_h:
-            differ.append((ob_path, wb_path, tool, merges))    # 两边都有但内容不同
+            differ.append((ob_path, wb_path, tool))    # 两边都有但内容不同
     return only_ob, only_wb, differ
 
 def compare():
     """对比真源 vs 副本，返回 (仅真源有, 仅副本有, 内容不同)，每项为 (真源路径, 副本路径)。"""
     only_ob, only_wb, differ = classify(build_pairs())
-    return ([(ob, wb) for ob, wb, _t, _m in only_ob],
-            [(ob, wb) for ob, wb, _t, _m in only_wb],
-            [(ob, wb) for ob, wb, _t, _m in differ])
+    return ([(ob, wb) for ob, wb, _t in only_ob],
+            [(ob, wb) for ob, wb, _t in only_wb],
+            [(ob, wb) for ob, wb, _t in differ])
 
 # ============ 机械下发（sync） ============
 def translate_content(data, tool):
@@ -556,23 +535,20 @@ def sync(tools, apply=False, take_ob=False):
     if not apply:
         print("# sync dry-run（只报告，不改文件）")
         print(f"- 仅真源有（将下发）：{len(only_ob)}")
-        for ob, wb, tool, merges in only_ob:
-            label = "（拼接）" if merges else ""
-            print(f"  [{tool}] {os.path.basename(wb)}{label}")
+        for ob, wb, tool in only_ob:
+            print(f"  [{tool}] {os.path.basename(wb)}")
         print(f"- 内容不同（需裁决{'；已指定 --take-ob，将按真源覆盖' if take_ob else ''}）：{len(differ)}")
-        for ob, wb, tool, _m in differ:
+        for ob, wb, tool in differ:
             print(f"  [{tool}] {os.path.basename(wb)}")
         print(f"- 仅副本有（需裁决）：{len(only_wb)}")
-        for ob, wb, tool, _m in only_wb:
+        for ob, wb, tool in only_wb:
             print(f"  [{tool}] {os.path.basename(wb)}")
         return
 
     applied = 0
     skipped_differ = 0
-    for ob_path, wb_path, tool, merges in only_ob:
-        if merges:
-            data = merged_bytes(merges, tool)
-        elif TOOLS[tool].get("inbox"):
+    for ob_path, wb_path, tool in only_ob:
+        if TOOLS[tool].get("inbox"):
             # inbox 模式（zcode）：原样直拷，不翻译占位符（ZCode 归位时自己处理）
             with open(ob_path, "rb") as f:
                 data = f.read()
@@ -583,12 +559,12 @@ def sync(tools, apply=False, take_ob=False):
         with open(wb_path, "wb") as f:
             f.write(data)
         applied += 1
-        label = "（拼接）" if merges else ("（inbox 直拷）" if TOOLS[tool].get("inbox") else "")
+        label = "（inbox 直拷）" if TOOLS[tool].get("inbox") else ""
         print(f"  下发 [{tool}] {os.path.basename(wb_path)}{label}")
 
     # 差异覆盖：inbox 自动（raw 副本过期即重写）；非 inbox 仅在 take_ob（Owner 裁决后）时执行
     overridden = 0
-    for ob_path, wb_path, tool, _m in differ:
+    for ob_path, wb_path, tool in differ:
         is_inbox = bool(TOOLS[tool].get("inbox"))
         if not is_inbox and not take_ob:
             skipped_differ += 1
@@ -638,10 +614,8 @@ def render_report(only_ob, only_wb, differ):
         lines.append("## ⚠️ 内容不一致（请 Owner 裁决，本脚本不改任何文件）")
         lines.append("")
         for ob_path, wb_path in differ:
-            name = os.path.basename(ob_path or wb_path)
-            tag = "（拼接型）" if ob_path is None else ""
-            lines.append(f"### {name}{tag}")
-            lines.append(f"- 真源：`{ob_path if ob_path else '（多个真源文件拼接，见 TOOLS 配置）'}`")
+            lines.append(f"### {os.path.basename(ob_path or wb_path)}")
+            lines.append(f"- 真源：`{ob_path}`")
             lines.append(f"- 副本：`{wb_path}`")
             lines.append(f"- 状态：两边内容不同，需 Owner 确认以哪边为准。")
             lines.append("")
@@ -650,16 +624,14 @@ def render_report(only_ob, only_wb, differ):
         lines.append("## 仅真源有（副本缺失，AI 按协作规则决定是否下发）")
         lines.append("")
         for ob_path, wb_path in only_ob:
-            tag = "（拼接型）" if ob_path is None else ""
-            lines.append(f"- `{os.path.basename(ob_path or wb_path)}`{tag}")
+            lines.append(f"- `{os.path.basename(ob_path or wb_path)}`")
         lines.append("")
 
     if only_wb:
         lines.append("## 仅副本有（真源缺失，AI 按协作规则决定是否上报真源）")
         lines.append("")
         for ob_path, wb_path in only_wb:
-            tag = "（拼接型）" if ob_path is None else ""
-            lines.append(f"- `{os.path.basename(ob_path or wb_path)}`{tag}")
+            lines.append(f"- `{os.path.basename(ob_path or wb_path)}`")
         lines.append("")
 
     if not (differ or only_ob or only_wb):
