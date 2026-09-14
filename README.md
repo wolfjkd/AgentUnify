@@ -51,44 +51,63 @@ flowchart TD
 > ⛔ **ZCode 边界铁律**：`~/.zcode/` 下所有文件是 ZCode 自己的家务事，本体系永不触碰
 > （不比对 / 不下发 / 不删除 / 不修改）。本脚本只跟 inbox 收件箱交互。
 
+## 开源边界（什么进仓）
+
+**只开机制，不开实例** —— 本仓不携带任何人的人设、领域规则、记忆或真实路径。
+`1-人设/` `3-记忆/` 是空槽位，请在你自己的真源里自建。
+
+详见 `开源边界契约.md`。
+
 ## 目录结构
 
 ```
 AgentUnify/
 ├── AGENTS.md                       # 最高统领（规则索引 + 行为规范）
+├── 开源边界契约.md                 # 边界：什么进仓（机制）/ 什么永不进仓（实例）
 ├── ai_rules_collaboration.md       # 协作规则（体系宪法，所有 AI 必读）
 ├── ai_rules_architecture.md        # 架构决策 + 演进史
-├── 1-人设/                         # 人设（SOUL / USER / IDENTITY）
+├── config.example.json             # 配置样板：复制为 config.json 后改路径
+├── 1-人设/                         # 人设（SOUL / USER / IDENTITY，使用者自建）
 ├── 2-规则/                         # 规则（懒加载）
-│   └── AI-Rules镜像同步规范.md     # mirror.py 命令、机制、铁律
+│   └── AI-Rules镜像同步规范.md     # 两个脚本的命令、机制、铁律
 ├── 3-记忆/                         # 记忆（定期提炼汇总）
-├── 4-索引/                         # 索引（脚本/AI 扫描生成）
-└── _scripts/mirror.py              # 机械比对器（compare/check/backup/sync）
+├── 4-索引/                         # 索引（脚本/AI 扫描生成：规则导航 / 技能清单）
+└── _scripts/
+    ├── mirror.py                   # 机械比对器（compare / check / backup / sync）
+    └── memindex.py                 # 索引工具（技能清单 check / diff / gen）
 ```
 
 ## 快速开始
 
 ```bash
-# 比对真源 vs 各工具副本
-python mirror.py compare
+# 1) 配置真源路径（复制样板后改路径即可，source_dir 支持 ~）
+cp config.example.json config.json
 
-# 校验索引对齐（AGENTS.md 引用 ↔ 2-规则/ 文件）
-python mirror.py check
+# 2) 比对真源 vs 各工具副本
+python _scripts/mirror.py compare
 
-# 备份真源（每次运行前自动执行一次）
-python mirror.py backup
+# 3) 校验索引对齐（两段：AGENTS.md 懒加载总表 + 4-索引 双链地图）
+python _scripts/mirror.py check
 
-# 下发（只下发「仅真源有」的安全项）
-python mirror.py sync --apply
+# 4) 备份真源（写操作前自动执行一次，同一天只一次）
+python _scripts/mirror.py backup
 
-# 只针对某个工具下发
-python mirror.py sync --apply zcode
+# 5) 下发：先 dry-run 看差异，再只下发「仅真源有」的安全项
+python _scripts/mirror.py sync
+python _scripts/mirror.py sync --apply
+
+# 6) 技能清单：校验漂移 / 重新生成
+python _scripts/memindex.py check
+python _scripts/memindex.py gen
 ```
+
+> 未配置 `config.json` 时，脚本会在启动自检处**直接报错指路**（不会静默跑到错误目录）。
+> 「内容不同 / 仅副本有」脚本永不自动覆盖 —— 需 Owner 裁决后加 `--take-ob` 才执行。
 
 > 详见 `2-规则/AI-Rules镜像同步规范.md`（同步规范）与 `ai_rules_collaboration.md`（协作规则）。
 
 ## 版本
 
-**v0.2.0**（当前）：4 工具标准化接入 + inbox 模式 + 双向遍历加固 + sync 命令补齐
+**v0.3.0**（当前）：稳定性加固（命令白名单 / 前置校验 / 写后复核）+ `memindex.py` 索引工具 + `config.json` 配置机制 + 行尾归一
 
 > 详见 `CHANGELOG.md`。

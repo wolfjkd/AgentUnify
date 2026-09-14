@@ -1,0 +1,8 @@
+{
+  "_comment": "AgentUnify 配置。把本文件复制为同目录的 config.json，改成你自己的路径即可。",
+  "_comment_source_dir": "真源文档目录：你存放规则/人设/记忆 md 的根目录（本机绝对路径，支持 ~）。",
+  "_comment_skills_dir": "技能目录（可选）：memindex.py 扫描 SKILL.md 生成技能清单的来源，支持 --skills-dir 覆盖。",
+
+  "source_dir": "D:/your-vault/AI-Rules",
+  "skills_dir": "~/.workbuddy/skills"
+}
