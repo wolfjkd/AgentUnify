@@ -26,6 +26,7 @@
 | WorkBuddy | `~/.workbuddy/` | **1:1 翻译下发**（占位符 → WB 路径）| 全权 Owner 管 |
 | Trae Work | `~/.trae-cn/` | **1:1 翻译下发**（占位符 → Trae 路径）| 全权 Owner 管 |
 | ZCode | `~/.zcode/workspace/default/inbox/` | **inbox 直拷**（原样保留子目录）| ZCode 自己归位，体系不碰 inbox 外 |
+| Qoder | `~/.qoder/` | **1:1 翻译下发**（占位符 → Qoder 路径）| 全权 Owner 管；记忆层按 Qoder「一条记忆一文件 + MEMORY.md 索引」另建引导 |
 | 豆包 / 其他 | 无本地目录 | 手动 | Owner 手动同步 |
 
 > ⛔ **ZCode 边界**：`~/.zcode/` 下除 inbox 外的文件是 ZCode 自己的家务事，本体系永不触碰。

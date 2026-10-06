@@ -10,10 +10,10 @@ AgentUnify 机械比对器（比对 + 校验 + 机械下发，不做裁决）
   - 增删改（归源/内容编辑）由 AI 按「协作规则」执行
 
 真源：Obsidian（路径由 config.json 的 source_dir 指定，不写死在代码里）
-副本：WorkBuddy ~/.workbuddy、Trae .trae-cn、ZCode ~/.zcode/workspace/default/inbox
+副本：WorkBuddy ~/.workbuddy、Trae .trae-cn、ZCode ~/.zcode/workspace/default/inbox、Qoder ~/.qoder
 
 两种现行下发形态（N:1 拼接已于 2026-09-13 废弃，相关死代码 2026-09-14 清除）：
-  - 1:1（workbuddy/trae）  真源文件 -> 副本文件（改目录/改名），占位符翻译
+  - 1:1（workbuddy/trae/qoder）真源文件 -> 副本文件（改目录/改名），占位符翻译
   - inbox（zcode，2026-09-13 起）真源文件原样保留子目录拷入 inbox，ZCode 自己归位
     （README：~/.zcode/workspace/default/inbox/README.md，
       "原样丢进来、不用分类、不用改名、ZCode 整理归位"）
@@ -180,6 +180,32 @@ TOOLS = {
         "rules_dir": "2-规则",   # 真源 2-规则/*.md → inbox/2-规则/*.md（整目录保留）
         "exclude_rules": [],
     },
+    "qoder": {
+        # Qoder（阿里云 Agentic 编码平台，国际版 v0.3.4，配置目录 ~/.qoder）。
+        # 接入形态：1:1 翻译下发（与 WorkBuddy 同构）——
+        #   用户级规则入口 = ~/.qoder/AGENTS.md（官方 CLI 文档确认：每次会话自动加载）
+        #   细分规则     = ~/.qoder/rules/*.md（用户级，跨所有项目）
+        # 记忆层：Qoder 采用「一条记忆一文件 + MEMORY.md 仅索引」规范（见 Owner
+        #   《Qoder-配置与记忆体系说明.md》），与 WorkBuddy 的「单文件 MEMORY.md」不同构，
+        #   故本工具【不】把真源 3-记忆/MEMORY.md 整份塞进 ~/.qoder/memory/（会污染其
+        #   记忆目录结构）。记忆区仅由接入时在 ~/.qoder/memory/ 建一条 agentunify-bridge.md
+        #   引导索引（见 AI-Rules镜像同步规范.md），不在 mirror 机械下发范围内。
+        "root": os.path.expanduser("~/.qoder"),
+        "files": {
+            "AGENTS.md":                   "AGENTS.md",
+            "1-人设/SOUL.md":             "rules/人设-SOUL.md",
+            "1-人设/IDENTITY.md":         "rules/人设-IDENTITY.md",
+            "1-人设/USER.md":             "rules/人设-USER.md",
+            "ai_rules_collaboration.md":  "rules/ai_rules_collaboration.md",   # 体系宪法
+            "ai_rules_architecture.md":   "rules/ai_rules_architecture.md",     # 架构背景
+            "AI-Rules镜像同步规范.md":     "rules/AI-Rules镜像同步规范.md",
+            # 注：记忆层（3-记忆/MEMORY.md）不外发，见上方注释。
+        },
+        "rules_dir": "rules",   # 真源 2-规则/*.md → <root>/rules/*.md（用户级规则）
+        # project_dir_rule.md 通篇是 Trae 专属约定（trae_projects / .trae-cn/skills），
+        # 对 Qoder 没有执行意义 → 与 workbuddy 一样排除（2026-09-19 Owner 拍板）。
+        "exclude_rules": ["project_dir_rule.md"],
+    },
     "doubao": {
         "root": None,
         "files": {},   # 无本地目录，手动（知识库上传 / 提示词指针）
@@ -187,9 +213,10 @@ TOOLS = {
     },
 }
 
-# 当前参与比对的目标工具（接入顺序：WorkBuddy -> Trae -> ZCode；豆包无本地目录不参与）
+# 当前参与比对的目标工具（接入顺序：WorkBuddy -> Trae -> ZCode -> Qoder；豆包无本地目录不参与）
 # Trae 于 2026-09-13 真源中立化后归一化比对全 0，正式纳入自动监控（此前只手工核对）。
-ACTIVE_TOOLS = ["workbuddy", "trae", "zcode"]
+# Qoder 于 2026-09-19 接入（国际版 v0.3.4，配置 ~/.qoder），1:1 翻译下发。
+ACTIVE_TOOLS = ["workbuddy", "trae", "zcode", "qoder"]
 
 # ============ 路径占位符（真源中立化） ============
 # 真源文件内容里用 {VAR} 表示「路径」，下发到各工具时按此表翻译成该工具的实际路径。
@@ -198,26 +225,31 @@ PATH_VARS = {
     "{RULES_DIR}": {       # 主题规则目录（2-规则 大部分规则，Trae 下触发加载）
         "workbuddy": "~/.workbuddy/user_rules/",
         "trae": ".trae-cn/memory/",
+        "qoder": "~/.qoder/rules/",
         # zcode：inbox 模式不翻译（2026-09-13）
     },
     "{CORE_RULES_DIR}": {  # 核心规则目录（如 project_dir_rule，Trae 下自动加载）
         "workbuddy": "~/.workbuddy/user_rules/",
         "trae": ".trae-cn/user_rules/",
+        "qoder": "~/.qoder/rules/",
         # zcode：inbox 模式不翻译（2026-09-13）
     },
-    "{MEMORY_FILE}": {     # 记忆库文件
+    "{MEMORY_FILE}": {     # 记忆库文件（Qoder 为记忆索引入口，正文按一记忆一文件落 ~/.qoder/memory/）
         "workbuddy": "~/.workbuddy/MEMORY.md",
         "trae": ".trae-cn/user_rules/MEMORY.md",
+        "qoder": "~/.qoder/memory/MEMORY.md",
         # zcode：inbox 模式不翻译（2026-09-13）
     },
     "{AGENTS_FILE}": {     # 最高统领文件
         "workbuddy": "~/.workbuddy/AGENTS.md",
         "trae": ".trae-cn/user_rules/AGENTS.md",
+        "qoder": "~/.qoder/AGENTS.md",
         # zcode：inbox 模式不翻译（2026-09-13）
     },
-    "{SKILLS_DIR}": {      # 技能目录
+    "{SKILLS_DIR}": {      # 技能目录（Qoder skills 走 ~/.agents/skills/，无独立技能目录副本，不翻译）
         "workbuddy": "~/.workbuddy/skills/",
         "trae": ".trae-cn/skills/",
+        # qoder：见注释
         # zcode：inbox 模式不翻译（2026-09-13）
     },
     "{BIN_DIR}": {         # 工具/脚本目录（命令执行用绝对路径）
@@ -225,6 +257,7 @@ PATH_VARS = {
         # 换机器时不再需要改代码，只依赖家目录。
         "workbuddy": os.path.join(_HOME, ".workbuddy", "bin") + os.sep,
         "trae": os.path.join(_HOME, ".trae-cn", "scripts") + os.sep,
+        # qoder：无脚本目录，不翻译
         # zcode：inbox 模式不翻译（2026-09-13）
     },
 }

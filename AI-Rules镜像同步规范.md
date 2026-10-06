@@ -68,19 +68,23 @@
 
 ### 当前参与比对的目标工具
 
-`ACTIVE_TOOLS = ["workbuddy", "trae", "zcode"]`
+`ACTIVE_TOOLS = ["workbuddy", "trae", "zcode", "qoder"]`
 
-- **WorkBuddy / Trae**：1:1 映射（真源文件 → 副本文件，改目录 / 改名）
+- **WorkBuddy / Trae / Qoder**：1:1 映射（真源文件 → 副本文件，改目录 / 改名）
 - **ZCode**：**inbox 直拷**（2026-09-13 起）—— 真源文件原样保留子目录拷入 `~/.zcode/workspace/default/inbox/`，由 ZCode 自己识别并归位到 `~/.zcode/AGENTS.md` / `cli/memories/.../memory/` / Obsidian。脚本不做 N:1 拼接、不做路径翻译、不做分类。inbox README：`~/.zcode/workspace/default/inbox/README.md`
-- 豆包：无本地目录，不参与
+- **豆包**：无本地目录，不参与
 
 ### 三种下发形态
 
 | 形态 | 工具 | 行为 |
 |---|---|---|
-| **1:1 翻译下发** | WorkBuddy / Trae | 占位符 `{RULES_DIR}` 等翻译为工具本地路径后写入 |
+| **1:1 翻译下发** | WorkBuddy / Trae / Qoder | 占位符 `{RULES_DIR}` 等翻译为工具本地路径后写入 |
 | **inbox 直拷**（v0.2.0 新增） | ZCode | 真源文件原样保留子目录拷入 inbox，由 ZCode 自己归位；不翻译、不分类、不改名 |
 | **N:1 拼接**（v0.2.0 弃用） | — | 旧版 ZCode 拼接单 AGENTS.md 方案，已被 inbox 取代 |
+
+> 🧠 **Qoder 记忆层特殊约束（2026-09-19 接入）**：Qoder 的记忆体系采用「一条记忆一文件（kebab-case + frontmatter）+ `MEMORY.md` 仅做索引」规范，
+> 与 WorkBuddy 的「单文件 MEMORY.md」**不同构**。因此对 Qoder：**不**把真源 `3-记忆/MEMORY.md` 整份下发到 `~/.qoder/memory/`（那会污染其记忆目录结构）；
+> 只在接入时于 `~/.qoder/memory/` 手动建一条 `agentunify-bridge.md` 引导索引及 `MEMORY.md` 指针（属「AI 接入时完成」的一次性工作，非 mirror 机械下发范围）。
 
 ### ZCode 边界铁律（2026-09-13 Owner 拍板）
 
@@ -131,6 +135,7 @@
 | WorkBuddy | 用 Bash 工具执行 `python <项目>/_scripts/mirror.py <命令>` |
 | Trae | 在终端执行 `python <项目>/_scripts/mirror.py <命令>` |
 | ZCode | 在终端执行 `python <项目>/_scripts/mirror.py <命令>` |
+| Qoder | 在终端执行 `python <项目>/_scripts/mirror.py <命令>` |
 | 豆包工作 | 若无命令执行能力，由 Owner 指挥其他 AI 代跑 |
 
 ## 六、回滚机制

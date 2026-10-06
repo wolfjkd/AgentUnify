@@ -50,16 +50,19 @@ flowchart TD
     WB[WorkBuddy]
     Trae[Trae Work]
     ZC[ZCode]
+    QD[Qoder]
     DB[豆包 / 其他]
 
     WB -->|差异上报| Owner
     Trae -->|差异上报| Owner
     ZC -->|差异上报| Owner
+    QD -->|差异上报| Owner
     Owner -->|裁决| OB
 
     OB -->|1:1 翻译下发| WB
     OB -->|1:1 翻译下发| Trae
     OB -->|inbox 直拷| ZC
+    OB -->|1:1 翻译下发| QD
     OB -->|手动| DB
 ```
 
@@ -148,6 +151,7 @@ python _scripts/mirror.py sync --apply
 | WorkBuddy | `~/.workbuddy/` | 1:1 翻译下发 | Owner 全权管 |
 | Trae Work | `~/.trae-cn/` | 1:1 翻译下发 | Owner 全权管 |
 | ZCode | `~/.zcode/workspace/default/inbox/` | inbox 直拷 | **ZCode 自己归位** |
+| Qoder | `~/.qoder/` | 1:1 翻译下发 | Owner 全权管 |
 | 豆包 / 其他 | 无本地目录 | 手动 | Owner 手动同步 |
 
 > ⛔ **ZCode 边界铁律**：`~/.zcode/` 下**除 inbox 外**的文件是 ZCode 自己的家务事 ——
